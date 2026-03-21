@@ -1,0 +1,58 @@
+name: NSE Option Chain Bot
+
+on:
+  schedule:
+    # Runs at 9:10 AM IST = 3:40 AM UTC (Mon–Fri)
+    # GitHub Actions cron uses UTC
+    - cron: '40 3 * * 1-5'
+
+  # Allow manual trigger from GitHub Actions tab anytime
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 390  # 6.5 hours — covers full market session (9:10–3:30 IST)
+
+    steps:
+
+      # ── Step 1: Checkout your repo ──────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Step 2: Set up Python ───────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # ── Step 3: Install Chrome + ChromeDriver ───────────────
+      - name: Install Google Chrome
+        run: |
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update -q
+          sudo apt-get install -y google-chrome-stable
+
+      # ── Step 4: Install Python dependencies ─────────────────
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      # ── Step 5: Write credentials.json from GitHub Secret ───
+      # Store your full credentials.json content as a GitHub Secret
+      # named GOOGLE_CREDENTIALS (Settings → Secrets → Actions)
+      - name: Write Google credentials
+        run: echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
+
+      # ── Step 6: Run the bot ──────────────────────────────────
+      # HEADLESS_MODE is forced True via env var for cloud environment
+      - name: Run NSE Option Chain Bot
+        env:
+          HEADLESS_MODE: 'true'
+          DISPLAY: ':99'
+        run: |
+          # Start virtual display (needed for Chrome even in headless mode)
+          sudo apt-get install -y xvfb
+          Xvfb :99 -screen 0 1920x1080x24 &
+          sleep 2
+          python main.py
