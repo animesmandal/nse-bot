@@ -2,14 +2,13 @@ name: NSE Option Chain Bot
 
 on:
   schedule:
-    # 9:10 AM IST = 3:40 AM UTC, Mon-Fri
-    - cron: '40 3 * * 1-5'
+    - cron: '40 3 * * 1-5'  # 9:10 AM IST, Mon–Fri
   workflow_dispatch:
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 390  # 6.5 hours = 9:10 AM to 3:30 PM IST
 
     steps:
       - name: Checkout repository
